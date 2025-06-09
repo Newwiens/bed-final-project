@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  seed = "node seed.js"
+}
+
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+
+  id String @id @default(uuid())
+  username String @unique
+  password String
+  name String
+  email String
+  phoneNumber String
+  profilePicture String
+
+  @@map("users")
+  Booking Booking[]
+  Review Review[]
+}
+
+model Booking {
+  id String @id @default(uuid())
+  userId String
+  propertyId String
+  checkinDate DateTime
+  checkoutDate DateTime
+  numberOfGuests Int
+  totalPrice Float
+  bookingStatus String
+
+  // relatie many-to-one: meerdere bookings horen bij één user/property
+  user User @relation(fields: [userId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@map("bookings")
+  @@index([userId])
+  @@index([propertyId])
+}
+
+model Review{
+  id String @id @default(uuid())
+  userId String
+  propertyId String
+  rating Int @default(0)
+  comment String
+
+  // relatie many-to-one: meerdere bookings horen bij één user/property
+  user User @relation(fields: [userId], references: [id] )
+  property Property @relation(fields: [propertyId], references: [id])
+  
+  @@map("reviews")
+  @@index([userId])
+  @@index([propertyId])
+}
+
+model Property {
+  id String @id @default(uuid())
+  hostId String? //--> ? optioneel veld. is niet verplicht
+  title String
+  description String
+  location String
+  pricePerNight Float
+  bedroomCount Int
+  bathRoomCount Int
+  maxGuestCount Int
+  rating Int @default(0)
+
+  // relatie many-to-one: meerdere bookings horen bij één user/property
+  host Host? @relation(fields: [hostId], references: [id])
+
+  //relatie many-to-many
+  amenities Amenity [] @relation("PropertyToAmenity")
+  //--
+  Booking Booking[]
+  Review Review[]
+
+  @@map("properties")
+  @@index([hostId])
+  
+}
+
+//hostId is een kolom in de database — die hoort bij de Property-kant
+//zie diagram
+model Host {
+  id String @id @default(uuid())
+  username String @unique
+  password String
+  name String
+  email String
+  phoneNumber String
+  profilePicture String
+  aboutMe String
+
+  listings Property[] //veldnaam listings kan ook andere naam zijn, maar de database is wel Property
+
+  @@map("hosts")
+}
+
+model Amenity {
+  id String @id @default(uuid())
+  name String
+
+  //relatie many-to-many
+  properties Property[] @relation("PropertyToAmenity")
+
+  @@map("amenities")
+}
